@@ -1,0 +1,76 @@
+version: "2"
+
+services:
+  zk:
+      image: spotify/kafka
+      network_mode: host
+      environment:
+        - ADVERTISED_HOST=${DOCKER_IP}
+        - ADVERTISED_PORT=9092
+  # zk:
+  #   image: bobrik/zookeeper
+  #   network_mode: host
+  #   environment:
+  #     ZK_CONFIG: tickTime=2000,initLimit=10,syncLimit=5,maxClientCnxns=128,forceSync=no,clientPort=2181
+  #     ZK_ID: 1
+
+  master:
+    image: mesosphere/mesos-master:1.0.1-2.0.93.ubuntu1404
+    network_mode: host
+    environment:
+      MESOS_ZK: zk://127.0.0.1:2181/mesos
+      MESOS_QUORUM: 1
+      MESOS_CLUSTER: docker-compose
+      MESOS_REGISTRY: replicated_log # default is in_memory for some reason
+      MESOS_HOSTNAME: ${DOCKER_IP}
+      LIBPROCESS_IP: ${DOCKER_IP}
+    depends_on:
+      - zk
+
+  slave-one:
+    image: mesosphere/mesos-slave:1.0.1-2.0.93.ubuntu1404
+    network_mode: host
+    pid: host
+    environment:
+      MESOS_MASTER: zk://127.0.0.1:2181/mesos
+      MESOS_CONTAINERIZERS: docker,mesos
+      MESOS_PORT: 5051
+      MESOS_RESOURCES: ports(*):[11000-11999]
+      MESOS_HOSTNAME: ${DOCKER_IP}
+      LIBPROCESS_IP: ${DOCKER_IP}
+      MESOS_WORK_DIR: /tmp/mesos
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /usr/local/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zk
+
+
+  marathon:
+    image: mesosphere/marathon:v1.3.0
+    network_mode: host
+    environment:
+      MARATHON_MASTER: zk://127.0.0.1:2181/mesos
+    depends_on:
+      - zk
+
+  gerrit:
+    image: gerrit
+    network_mode: bridge
+    ports:
+        - 8022:8080
+        - 29418:29418
+    environment:
+      ZK_GERRIT_CONFIG: zk://tldlab78.tl.intel.com:2181/config/dev/gerrit/gerrit.config
+    volumes:
+      - /data/gerrit:/var/gerrit/review_site
+
+    depends_on:
+      - zk
+
+  cas:
+      image: apereo/cas:v4.1.5
+      ports:
+          - 8023:8080
+          - 44323:8443
