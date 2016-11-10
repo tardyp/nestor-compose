@@ -6,7 +6,7 @@ set -e
 if [ "$1" = "/gerrit-start.sh" ]; then
   # If you're mounting ${GERRIT_SITE} to your host, you this will default to root.
   # This obviously ensures the permissions are set correctly for when gerrit starts.
-  chown -R ${GERRIT_USER} "${GERRIT_SITE}"
+  #chown -R ${GERRIT_USER} "${GERRIT_SITE}"
 
   if [ -z "$(ls -A "$GERRIT_SITE")" ]; then
     echo "First time initialize gerrit..."
@@ -17,15 +17,16 @@ if [ "$1" = "/gerrit-start.sh" ]; then
     [ ${#DATABASE_TYPE} -gt 0 ] && rm -rf "${GERRIT_SITE}/git"
   fi
   zk get --out  "${GERRIT_SITE}/etc/gerrit.config" ${ZK_GERRIT_CONFIG}
+  zk get --out  "${GERRIT_SITE}/etc/secure.config" ${ZK_SECURE_CONFIG}
 
   # Install external plugins
-  gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/delete-project.jar ${GERRIT_SITE}/plugins/delete-project.jar
-  gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/events-log.jar ${GERRIT_SITE}/plugins/events-log.jar
-  gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/kafka-events.jar ${GERRIT_SITE}/plugins/kafka-events.jar
+  for PLUGIN in kafka-events lfs verify-status wip zuul
+  do
+    gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/${PLUGIN}.jar ${GERRIT_SITE}/plugins/${PLUGIN}.jar
+  done
 
   # Install the Bouncy Castle
   gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/bcprov-jdk15on-${BOUNCY_CASTLE_VERSION}.jar ${GERRIT_SITE}/lib/bcprov-jdk15on-${BOUNCY_CASTLE_VERSION}.jar
-  gosu ${GERRIT_USER} cp -f ${GERRIT_HOME}/bcpkix-jdk15on-${BOUNCY_CASTLE_VERSION}.jar ${GERRIT_SITE}/lib/bcpkix-jdk15on-${BOUNCY_CASTLE_VERSION}.jar
 
   echo "Upgrading gerrit..."
   gosu ${GERRIT_USER} java -jar "${GERRIT_WAR}" init --batch -d "${GERRIT_SITE}" ${GERRIT_INIT_ARGS}

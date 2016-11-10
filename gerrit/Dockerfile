@@ -29,27 +29,12 @@ RUN set -x \
 #Download gerrit.war
 RUN wget https://gerrit-releases.storage.googleapis.com/gerrit-${GERRIT_VERSION}.war -O $GERRIT_WAR
 #Only for local test
-#COPY gerrit-${GERRIT_VERSION}.war $GERRIT_WAR
 
 #Download Plugins
 ENV PLUGIN_VERSION=stable-2.13
 ENV GERRITFORGE_URL=https://gerrit-ci.gerritforge.com
 ENV GERRITFORGE_ARTIFACT_DIR=lastSuccessfulBuild/artifact/buck-out/gen/plugins
-#delete-project
-RUN wget \
-    ${GERRITFORGE_URL}/job/plugin-delete-project-${PLUGIN_VERSION}/${GERRITFORGE_ARTIFACT_DIR}/delete-project/delete-project.jar \
-    -O ${GERRIT_HOME}/delete-project.jar
 
-#events-log
-#This plugin is required by gerrit-trigger plugin of Jenkins.
-RUN wget \
-    ${GERRITFORGE_URL}/job/plugin-events-log-${PLUGIN_VERSION}/${GERRITFORGE_ARTIFACT_DIR}/events-log/events-log.jar \
-    -O ${GERRIT_HOME}/events-log.jar
-
-#oauth2 plugin
-RUN wget \
-    https://github.com/davido/gerrit-oauth-provider/releases/download/v${GERRIT_VERSION}/gerrit-oauth-provider.jar \
-    -O ${GERRIT_HOME}/gerrit-oauth-provider.jar
 
 #download bouncy castle
 ENV BOUNCY_CASTLE_VERSION 1.54
@@ -63,10 +48,10 @@ RUN wget \
     ${BOUNCY_CASTLE_URL}/bcpkix-jdk15on/${BOUNCY_CASTLE_VERSION}/bcpkix-jdk15on-${BOUNCY_CASTLE_VERSION}.jar \
     -O ${GERRIT_HOME}/bcpkix-jdk15on-${BOUNCY_CASTLE_VERSION}.jar
 
-RUN wget \
-    https://gerrit-ci.gerritforge.com/job/plugin-kafka-events-stable-2.13/lastSuccessfulBuild/artifact/buck-out/gen/plugins/kafka-events/kafka-events.jar \
-    -O ${GERRIT_HOME}/kafka-events.jar
 
+COPY *.jar /${GERRIT_HOME}/
+
+COPY gerrit.war $GERRIT_WAR
 
 # Ensure the entrypoint scripts are in a fixed location
 COPY gerrit-entrypoint.sh /
