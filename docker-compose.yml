@@ -143,14 +143,24 @@ services:
       - ${HOME}/gerrit:/var/gerrit/review_site
     links:
         - zk
-    depends_on:
-      - zk
-      - kafka
+        - kafka
     logging:
       driver: syslog
       options:
         syslog-address: "tcp://localhost:5001"
 
+#### BUILDBOT_TRAVIS
+  bbtravis:
+    image: bbtravis
+    ports:
+        - 8010:8010
+        - 9989:9989
+    links:
+        - zk
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5001"
 
   lb:
     image: dockercloud/haproxy
